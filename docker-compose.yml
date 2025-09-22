@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # خدمة المحتوى الرئيسية
+  content-service:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://naebak_user:naebak_pass@postgres:5432/naebak_content
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - ALLOWED_HOSTS=localhost,127.0.0.1,content-service
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    restart: unless-stopped
+    networks:
+      - naebak-network
+
+  # قاعدة البيانات PostgreSQL
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=naebak_content
+      - POSTGRES_USER=naebak_user
+      - POSTGRES_PASSWORD=naebak_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - naebak-network
+
+  # Redis للـ Cache والمهام
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - naebak-network
+
+  # Celery Worker للمهام غير المتزامنة
+  celery-worker:
+    build: .
+    command: celery -A content_service worker -l info
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://naebak_user:naebak_pass@postgres:5432/naebak_content
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - naebak-network
+
+  # Celery Beat للمهام المجدولة
+  celery-beat:
+    build: .
+    command: celery -A content_service beat -l info
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://naebak_user:naebak_pass@postgres:5432/naebak_content
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - naebak-network
+
+  # Nginx للملفات الثابتة (اختياري)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/var/www/static
+      - media_volume:/var/www/media
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - content-service
+    restart: unless-stopped
+    networks:
+      - naebak-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+
+networks:
+  naebak-network:
+    driver: bridge
