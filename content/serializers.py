@@ -75,7 +75,8 @@ class EventSerializer(serializers.ModelSerializer):
 
 class RepresentativeListSerializer(serializers.ModelSerializer):
     """Serializer مبسط لقائمة النواب"""
-    governorate_name = serializers.CharField(source='governorate.name', read_only=True)
+    district_name = serializers.CharField(source='district.name', read_only=True)
+    governorate_name = serializers.CharField(source='district.governorate.name', read_only=True)
     party_name = serializers.CharField(source='party.name', read_only=True)
     party_color = serializers.CharField(source='party.color', read_only=True)
     
@@ -83,7 +84,7 @@ class RepresentativeListSerializer(serializers.ModelSerializer):
         model = Representative
         fields = [
             'id', 'name', 'slug', 'gender', 'profession', 'profile_image',
-            'district', 'governorate_name', 'party', 'party_name', 'party_color',
+            'district', 'district_name', 'governorate_name', 'party', 'party_name', 'party_color',
             'status', 'electoral_number', 'electoral_symbol',
             'rating', 'rating_count', 'solved_complaints', 'received_complaints',
             'is_distinguished', 'success_rate'
@@ -92,8 +93,8 @@ class RepresentativeListSerializer(serializers.ModelSerializer):
 
 class RepresentativeDetailSerializer(serializers.ModelSerializer):
     """Serializer تفصيلي للنواب"""
-    governorate_name = serializers.CharField(source='governorate.name', read_only=True)
     district_name = serializers.CharField(source='district.name', read_only=True)
+    governorate_name = serializers.CharField(source='district.governorate.name', read_only=True)
     party_name = serializers.CharField(source='party.name', read_only=True)
     party_color = serializers.CharField(source='party.color', read_only=True)
     age = serializers.ReadOnlyField()

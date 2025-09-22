@@ -68,6 +68,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'content_service.wsgi.application'
 
+# إعدادات Unicode والترميز
+DEFAULT_CHARSET = 'utf-8'
+FILE_CHARSET = 'utf-8'
+
 # Database
 DATABASES = {
     'default': dj_database_url.config(

@@ -54,8 +54,11 @@ urlpatterns = [
     path('api/', include(router.urls)),
 ]
 
-# إضافة مسارات الصفحات الشخصية بالروابط العربية
-urlpatterns += [
-    # مسار الصفحة الشخصية بالرابط العربي
+# إضافة مسارات الصفحات الشخصية بالروابط العربية في البداية
+arabic_urls = [
+    # مسار الصفحة الشخصية بالرابط العربي (يجب أن يكون في النهاية)
     path('<slug:slug>/', views.RepresentativeDetailView.as_view(), name='representative-page-arabic'),
 ]
+
+# دمج URLs مع وضع الروابط العربية في النهاية
+urlpatterns += arabic_urls

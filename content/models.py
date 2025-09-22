@@ -172,7 +172,16 @@ class Representative(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name, allow_unicode=True)
+            # استخدام الاسم الإنجليزي إذا كان متوفراً، وإلا استخدام transliteration
+            if self.name_en:
+                self.slug = slugify(self.name_en)
+            else:
+                # تحويل النص العربي إلى نص إنجليزي مبسط
+                import re
+                # إزالة التشكيل والرموز الخاصة
+                clean_name = re.sub(r'[^\w\s-]', '', self.name)
+                # استخدام unicode slugify
+                self.slug = slugify(clean_name, allow_unicode=True)
         super().save(*args, **kwargs)
 
     def __str__(self):
