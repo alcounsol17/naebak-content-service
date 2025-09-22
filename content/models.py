@@ -144,6 +144,9 @@ class Representative(BaseModel):
     # الحالة المميزة
     is_distinguished = models.BooleanField(default=False, verbose_name="مرشح مميز")
     
+    # موافقة الإدارة
+    admin_approved = models.BooleanField(default=False, verbose_name="موافقة الإدارة")
+    
     # البيانات الإضافية
     bio = models.TextField(blank=True, verbose_name="السيرة الذاتية")
     achievements = models.TextField(blank=True, verbose_name="الإنجازات")
@@ -263,6 +266,194 @@ class News(BaseModel):
         verbose_name = "خبر"
         verbose_name_plural = "الأخبار"
         ordering = ['-published_date']
+
+    def __str__(self):
+        return f"{self.title} - {self.representative.name}"
+
+
+
+# ========== الصفحات الثابتة ==========
+
+class StaticPage(BaseModel):
+    """الصفحات الثابتة (اتصل بنا، من نحن، إلخ)"""
+    PAGE_TYPES = [
+        ('contact', 'اتصل بنا'),
+        ('about', 'من نحن'),
+        ('privacy', 'سياسات الخصوصية'),
+        ('terms', 'اشتراطات واتفاقيات'),
+        ('faq', 'أسئلة وأجوبة'),
+    ]
+    
+    page_type = models.CharField(max_length=20, choices=PAGE_TYPES, unique=True, verbose_name="نوع الصفحة")
+    title = models.CharField(max_length=200, verbose_name="عنوان الصفحة")
+    content = models.TextField(verbose_name="محتوى الصفحة")
+    meta_description = models.CharField(max_length=160, blank=True, verbose_name="وصف SEO")
+    order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+
+    class Meta:
+        verbose_name = "صفحة ثابتة"
+        verbose_name_plural = "الصفحات الثابتة"
+        ordering = ['order', 'page_type']
+
+    def __str__(self):
+        return self.get_page_type_display()
+
+
+# ========== إدارة البنرات ==========
+
+class Banner(BaseModel):
+    """إدارة البنرات"""
+    BANNER_TYPES = [
+        ('main', 'البنر الرئيسي'),
+        ('representative', 'بنر النائب'),
+    ]
+    
+    name = models.CharField(max_length=100, verbose_name="اسم البنر")
+    banner_type = models.CharField(max_length=20, choices=BANNER_TYPES, verbose_name="نوع البنر")
+    image = models.ImageField(upload_to='banners/', verbose_name="صورة البنر")
+    representative = models.ForeignKey(
+        Representative, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True, 
+        related_name='banners',
+        verbose_name="النائب"
+    )
+    is_default = models.BooleanField(default=False, verbose_name="البنر الافتراضي")
+    alt_text = models.CharField(max_length=200, blank=True, verbose_name="النص البديل")
+
+    class Meta:
+        verbose_name = "بنر"
+        verbose_name_plural = "البنرات"
+        ordering = ['-is_default', 'name']
+
+    def __str__(self):
+        if self.representative:
+            return f"بنر {self.representative.name}"
+        return f"{self.name} ({self.get_banner_type_display()})"
+
+    def save(self, *args, **kwargs):
+        # التأكد من وجود بنر افتراضي واحد فقط للنوع الرئيسي
+        if self.is_default and self.banner_type == 'main':
+            Banner.objects.filter(banner_type='main', is_default=True).update(is_default=False)
+        super().save(*args, **kwargs)
+
+
+# ========== إدارة الألوان ==========
+
+class ColorSettings(BaseModel):
+    """إعدادات الألوان"""
+    COLOR_TYPES = [
+        ('primary_green', 'الأخضر الأساسي'),
+        ('primary_orange', 'البرتقالي الأساسي'),
+        ('secondary_green', 'الأخضر الثانوي'),
+        ('secondary_orange', 'البرتقالي الثانوي'),
+        ('header_green', 'أخضر الهيدر'),
+        ('footer_green', 'أخضر الفوتر'),
+        ('news_ticker_orange', 'برتقالي الشريط الإخباري'),
+    ]
+    
+    color_type = models.CharField(max_length=30, choices=COLOR_TYPES, unique=True, verbose_name="نوع اللون")
+    color_value = models.CharField(max_length=7, verbose_name="قيمة اللون (HEX)")
+    description = models.CharField(max_length=100, blank=True, verbose_name="وصف الاستخدام")
+
+    class Meta:
+        verbose_name = "إعداد لون"
+        verbose_name_plural = "إعدادات الألوان"
+        ordering = ['color_type']
+
+    def __str__(self):
+        return f"{self.get_color_type_display()} - {self.color_value}"
+
+
+# ========== إعدادات الموقع العامة ==========
+
+class SiteSettings(BaseModel):
+    """إعدادات الموقع العامة"""
+    site_name = models.CharField(max_length=100, default="نائبك.كوم", verbose_name="اسم الموقع")
+    site_description = models.TextField(blank=True, verbose_name="وصف الموقع")
+    contact_email = models.EmailField(blank=True, verbose_name="بريد التواصل")
+    contact_phone = models.CharField(max_length=20, blank=True, verbose_name="هاتف التواصل")
+    contact_address = models.TextField(blank=True, verbose_name="عنوان التواصل")
+    
+    # روابط السوشيال ميديا
+    facebook_url = models.URLField(blank=True, verbose_name="رابط فيسبوك")
+    twitter_url = models.URLField(blank=True, verbose_name="رابط تويتر")
+    instagram_url = models.URLField(blank=True, verbose_name="رابط إنستجرام")
+    youtube_url = models.URLField(blank=True, verbose_name="رابط يوتيوب")
+    linkedin_url = models.URLField(blank=True, verbose_name="رابط لينكد إن")
+    
+    # إعدادات عداد الزوار
+    visitor_counter_min = models.PositiveIntegerField(default=1000, verbose_name="الحد الأدنى لعداد الزوار")
+    visitor_counter_max = models.PositiveIntegerField(default=1500, verbose_name="الحد الأقصى لعداد الزوار")
+    
+    # اللوجو والأيقونات
+    logo_green = models.ImageField(upload_to='logos/', blank=True, verbose_name="اللوجو الأخضر")
+    logo_white = models.ImageField(upload_to='logos/', blank=True, verbose_name="اللوجو الأبيض")
+    favicon = models.ImageField(upload_to='logos/', blank=True, verbose_name="الفيف أيكون")
+
+    class Meta:
+        verbose_name = "إعدادات الموقع"
+        verbose_name_plural = "إعدادات الموقع"
+
+    def __str__(self):
+        return self.site_name
+
+    def save(self, *args, **kwargs):
+        # التأكد من وجود إعداد واحد فقط
+        if not self.pk and SiteSettings.objects.exists():
+            raise ValueError("يمكن وجود إعداد واحد فقط للموقع")
+        super().save(*args, **kwargs)
+
+
+# ========== الأسئلة الشائعة ==========
+
+class FAQ(BaseModel):
+    """الأسئلة الشائعة"""
+    question = models.CharField(max_length=300, verbose_name="السؤال")
+    answer = models.TextField(verbose_name="الإجابة")
+    category = models.CharField(max_length=100, blank=True, verbose_name="التصنيف")
+    order = models.PositiveIntegerField(default=0, verbose_name="ترتيب العرض")
+
+    class Meta:
+        verbose_name = "سؤال شائع"
+        verbose_name_plural = "الأسئلة الشائعة"
+        ordering = ['order', 'question']
+
+    def __str__(self):
+        return self.question[:100]
+
+
+# ========== المناسبات والمؤتمرات ==========
+
+class Event(BaseModel):
+    """المناسبات والمؤتمرات"""
+    EVENT_TYPES = [
+        ('conference', 'مؤتمر'),
+        ('meeting', 'اجتماع'),
+        ('ceremony', 'حفل'),
+        ('workshop', 'ورشة عمل'),
+        ('other', 'أخرى'),
+    ]
+    
+    representative = models.ForeignKey(
+        Representative, 
+        on_delete=models.CASCADE, 
+        related_name='events', 
+        verbose_name="النائب"
+    )
+    title = models.CharField(max_length=200, verbose_name="عنوان المناسبة")
+    description = models.TextField(verbose_name="وصف المناسبة")
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES, default='other', verbose_name="نوع المناسبة")
+    event_date = models.DateTimeField(verbose_name="تاريخ المناسبة")
+    location = models.CharField(max_length=200, blank=True, verbose_name="المكان")
+    image = models.ImageField(upload_to='events/', blank=True, verbose_name="صورة المناسبة")
+    admin_approved = models.BooleanField(default=False, verbose_name="موافقة الإدارة")
+
+    class Meta:
+        verbose_name = "مناسبة"
+        verbose_name_plural = "المناسبات والمؤتمرات"
+        ordering = ['-event_date']
 
     def __str__(self):
         return f"{self.title} - {self.representative.name}"
