@@ -10,6 +10,9 @@ from . import views
 router = DefaultRouter()
 
 urlpatterns = [
+    # ========== الصفحة الرئيسية ==========
+    path('', views.service_info_view, name='service-info'),
+    
     # ========== APIs الأساسية للنواب ==========
     path('api/representatives/', views.RepresentativeListView.as_view(), name='representative-list'),
     path('api/representatives/create/', views.RepresentativeCreateView.as_view(), name='representative-create'),

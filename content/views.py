@@ -372,6 +372,45 @@ def search_view(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# ========== الصفحة الرئيسية ==========
+
+@api_view(['GET'])
+def service_info_view(request):
+    """عرض معلومات الخدمة الرئيسية"""
+    return Response({
+        'service': 'Naebak Content Service',
+        'description': 'خدمة إدارة محتوى النواب والمرشحين لمنصة نائبك.كوم - منصة التواصل بين المواطنين والنواب',
+        'version': '1.0.0',
+        'status': 'active',
+        'endpoints': {
+            'representatives': '/api/representatives/',
+            'statistics': '/api/statistics/',
+            'search': '/api/search/',
+            'filter_options': '/api/filter-options/',
+            'pages': '/api/pages/',
+            'banners': '/api/banners/',
+            'colors': '/api/colors/',
+            'settings': '/api/settings/',
+            'faq': '/api/faq/',
+            'events': '/api/events/',
+            'health': '/health/',
+            'admin': '/admin/'
+        },
+        'features': [
+            'إدارة النواب والمرشحين',
+            'نظام التقييم والإحصائيات',
+            'البحث والفلترة المتقدمة',
+            'إدارة المحتوى والصفحات',
+            'نظام البانرات والألوان',
+            'الأسئلة الشائعة والمناسبات',
+            'الروابط العربية المخصصة',
+            'واجهات برمجية شاملة'
+        ],
+        'documentation': 'https://github.com/alcounsol17/naebak-content-service',
+        'support': 'https://naebak.com'
+    })
+
+
 # ========== API فحص الصحة ==========
 
 @api_view(['GET'])
